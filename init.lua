@@ -26,12 +26,12 @@ mcl_mobs.register_mob("bongledons:bongledon", {
         self._target = nil
     end,
     do_custom = function(self, dtime)
-        local pos = self.object:get_pos()
+        local eye_pos = vector.add(self.object:get_pos(), vector.new(0, self._EYE_HEIGHT, 0))
         if self._target then
             -- We have a target! TODO: attack them
         else
             -- Looking for target
-            local objects = minetest.get_objects_inside_radius(pos, self._SIGHT_RANGE)
+            local objects = minetest.get_objects_inside_radius(eye_pos, self._SIGHT_RANGE)
             local potential_targets = {}
             for _, obj in pairs(objects) do
                 local name = ""
@@ -41,8 +41,8 @@ mcl_mobs.register_mob("bongledons:bongledon", {
                     local ent = obj:get_luaentity()
                     name = ent.type or ""
                 end
-                if minetest.line_of_sight(vector.add(pos, vector.new(0, self._EYE_HEIGHT, 0)), obj:get_pos(), 5 * math.pi / 12) and -- Not obscured
-                   math.abs(minetest.dir_to_yaw(vector.subtract(obj:get_pos(), pos)) % 360 - self.object:get_yaw() % 360) < 37.5 then -- In view range
+                if minetest.line_of_sight(eye_pos, obj:get_pos(), 5 * math.pi / 12) and -- Not obscured
+                   math.abs(minetest.dir_to_yaw(vector.subtract(obj:get_pos(), eye_pos)) % 360 - self.object:get_yaw() % 360) < 37.5 then -- In view range
                     -- Can see potential target.
                     local is_enemy = false
                     for i = 1, #self._ENEMIES do
