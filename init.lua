@@ -25,6 +25,9 @@ mcl_mobs.register_mob("bongledons:bongledon", {
         self._camp = nil
         self._target = nil
     end,
+    do_punch = function(self, hitter)
+        self._target = hitter
+    end,
     do_custom = function(self, dtime)
         local eye_pos = vector.add(self.object:get_pos(), vector.new(0, self._EYE_HEIGHT, 0))
         if self._target then
