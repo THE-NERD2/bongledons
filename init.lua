@@ -39,7 +39,9 @@ mcl_mobs.register_mob("bongledons:bongledon", {
             for _, obj in pairs(objects) do
                 local name = ""
                 if obj:is_player() then
-                    name = "player"
+                    if mcl_gamemode.get_gamemode(obj) == "survival" then
+                        name = "player"
+                    end
                 else
                     local ent = obj:get_luaentity()
                     name = ent.type or ""
@@ -61,8 +63,7 @@ mcl_mobs.register_mob("bongledons:bongledon", {
                 end
             end
             if #potential_targets > 0 then
-                -- TODO: choose target randomly
-                self._target = potential_targets[1]
+                self._target = potential_targets[math.random(#potential_targets)]
             end
         end
     end
