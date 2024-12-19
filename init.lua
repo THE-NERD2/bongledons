@@ -20,7 +20,7 @@ mcl_mobs.register_mob("bongledons:bongledon", {
     on_spawn = function(self)
         self._EYE_HEIGHT = 1.2
         self._SIGHT_RANGE = 30
-        self._ENEMIES = {"player"}
+        self._ENEMIES = {"player", "mobs_mc:sheep"}
         self._friends = {}
         self._camp = nil
         self._target = nil
@@ -44,7 +44,7 @@ mcl_mobs.register_mob("bongledons:bongledon", {
                     end
                 else
                     local ent = obj:get_luaentity()
-                    name = ent.type or ""
+                    name = ent.name or ""
                 end
                 if minetest.line_of_sight(eye_pos, obj:get_pos(), 5 * math.pi / 12) and -- Not obscured
                    math.abs(minetest.dir_to_yaw(vector.subtract(obj:get_pos(), eye_pos)) % 360 - self.object:get_yaw() % 360) < 37.5 then -- In view range
