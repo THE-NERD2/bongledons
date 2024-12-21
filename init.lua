@@ -42,9 +42,7 @@ mcl_mobs.register_mob("bongledons:bongledon", {
         }
     },
     collisionbox = {-0.3, -0.01, -0.3, 0.3, 1.6, 0.3},
-    jump = true,
-    jump_height = 1,
-    stepheight = 1,
+    stepheight = 1.1,
     fear_height = 3,
     
     --Default behavior logic is downright abysmal. Doing just about everything custom
@@ -62,6 +60,8 @@ mcl_mobs.register_mob("bongledons:bongledon", {
     do_custom = function(self, dtime)
         local pos = self.object:get_pos()
         local eye_pos = vector.add(pos, vector.new(0, EYE_HEIGHT, 0))
+
+        -- Targeting/attacking
         if self.bongledon.target then
             -- We have a target!
             local enemy_pos = self.bongledon.target:get_pos()
@@ -76,8 +76,8 @@ mcl_mobs.register_mob("bongledons:bongledon", {
             else
                 -- Adjust to moving target
                 -- Determine if we are in the same "room" as target by checking if the path is direct
-                local path = minetest.find_path(pos, enemy_pos, 100, self.stepheight + 0.1, self.fear_height - 1)
-                if not path then return end
+                local path = minetest.find_path(pos, enemy_pos, 100, self.stepheight, self.fear_height - 1)
+                if not path then return true end
                 if is_path_direct(path) then
                     -- Hacky way to force gopath to stop
                     self._target = pos
