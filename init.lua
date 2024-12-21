@@ -1,3 +1,30 @@
+local function is_path_direct(path)
+    local direct = true
+    if #path >= 2 then
+        local sum_delta_theta = 0
+        local last_angle = 0
+        for i = 1, #path - 1 do
+            local current_point = path[i]
+            local next_point = path[i + 1]
+            if next_point.y ~= current_point.y then
+                direct = false
+                break
+            end
+            if last_angle then
+                sum_delta_theta = sum_delta_theta + last_angle - minetest.dir_to_yaw(vector.subtract(next_point, current_point))
+            end
+            last_angle = minetest.dir_to_yaw(vector.subtract(next_point, current_point))
+        end
+        if sum_delta_theta > 0.01 then
+            direct = false
+        end
+    end
+    return direct
+end
+
+local EYE_HEIGHT = 1.2
+local SIGHT_RANGE = 30
+local ENEMIES = {"player", "mobs_mc:sheep"}
 mcl_mobs.register_mob("bongledons:bongledon", {
     description = "Bongledon",
     type = "monster",
@@ -15,26 +42,52 @@ mcl_mobs.register_mob("bongledons:bongledon", {
         }
     },
     collisionbox = {-0.3, -0.01, -0.3, 0.3, 1.6, 0.3},
+    jump = true,
+    jump_height = 1,
+    stepheight = 1,
+    fear_height = 3,
     
     --Default behavior logic is downright abysmal. Doing just about everything custom
     on_spawn = function(self)
-        self._EYE_HEIGHT = 1.2
-        self._SIGHT_RANGE = 30
-        self._ENEMIES = {"player", "mobs_mc:sheep"}
-        self._friends = {}
-        self._camp = nil
-        self._target = nil
+        self.bongledon = {
+            friends = {},
+            camp = nil,
+            target = nil,
+            going = false
+        }
     end,
     do_punch = function(self, hitter)
-        self._target = hitter
+        self.bongledon.target = hitter
     end,
     do_custom = function(self, dtime)
-        local eye_pos = vector.add(self.object:get_pos(), vector.new(0, self._EYE_HEIGHT, 0))
-        if self._target then
-            -- We have a target! TODO: attack them
+        local pos = self.object:get_pos()
+        local eye_pos = vector.add(pos, vector.new(0, EYE_HEIGHT, 0))
+        if self.bongledon.target then
+            -- We have a target!
+            local enemy_pos = self.bongledon.target:get_pos()
+            if vector.distance(pos, enemy_pos) <= 2 then
+                -- TODO: attack
+                return
+            end
+            if not self.bongledon.going then
+                minetest.log("Going")
+                self.bongledon.going = true
+                self:gopath(enemy_pos)
+            else
+                -- Adjust to moving target
+                -- Determine if we are in the same "room" as target by checking if the path is direct
+                local path = minetest.find_path(pos, enemy_pos, 100, self.stepheight + 0.1, self.fear_height - 1)
+                if not path then return end
+                if is_path_direct(path) then
+                    -- Hacky way to force gopath to stop
+                    self._target = pos
+                    minetest.log("Is direct")
+                    -- TODO: make a custom direct path (for moving targets)
+                end
+            end
         else
             -- Looking for target
-            local objects = minetest.get_objects_inside_radius(eye_pos, self._SIGHT_RANGE)
+            local objects = minetest.get_objects_inside_radius(eye_pos, SIGHT_RANGE)
             local potential_targets = {}
             for _, obj in pairs(objects) do
                 local name = ""
@@ -46,24 +99,23 @@ mcl_mobs.register_mob("bongledons:bongledon", {
                     local ent = obj:get_luaentity()
                     name = ent.name or ""
                 end
-                if minetest.line_of_sight(eye_pos, obj:get_pos(), 5 * math.pi / 12) and -- Not obscured
+                if minetest.line_of_sight(eye_pos, obj:get_pos(), 2) and -- Not obscured
                    math.abs(minetest.dir_to_yaw(vector.subtract(obj:get_pos(), eye_pos)) % 360 - self.object:get_yaw() % 360) < 37.5 then -- In view range
                     -- Can see potential target.
                     local is_enemy = false
-                    for i = 1, #self._ENEMIES do
-                        if self._ENEMIES[i] == name then
+                    for i = 1, #ENEMIES do
+                        if ENEMIES[i] == name then
                             is_enemy = true
                         end
                     end
                     if is_enemy then
                         -- I hate this type of entity! Add it to list of potential targets.
-                        minetest.log("I see you!")
                         potential_targets[#potential_targets + 1] = obj
                     end
                 end
             end
             if #potential_targets > 0 then
-                self._target = potential_targets[math.random(#potential_targets)]
+                self.bongledon.target = potential_targets[math.random(#potential_targets)]
             end
         end
     end
